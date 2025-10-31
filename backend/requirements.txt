@@ -1,0 +1,10 @@
+pwdlib[argon2]
+fastapi
+pyjwt
+pwdlib
+motor
+uvicorn
+pydantic
+pydantic[email]
+python-dotenv
+python-multipart
