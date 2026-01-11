@@ -1,51 +1,45 @@
-# models.py
-from pydantic import BaseModel, Field, field_validator
+import uuid
 from typing import Optional
-
-# Notes
-
-class Title(BaseModel):
-    id: Optional[str] = Field(alias="_id")
-    title: Optional[str] = None
-    
-    @field_validator("id", mode="before")
-    def convert_objectid(cls, v):
-        return str(v)
-    
-
-class Note(Title):
-    content: Optional[str] = None
-
-class NoteWithUser(Note):
-    username: str
-
-class NoteCreate(BaseModel):
-    title: Optional[str] = None
-    content: Optional[str] = None
-    
-
-
-# Users
-class Username(BaseModel):
-    username: str
-
-class User(Username):
-    admin_status: Optional[bool] = False
-
-
-class UserInDB(User):
-    password: str
-
-class UserCreate(Username):
-    password: str
+from sqlmodel import Field, SQLModel
 
 # Token
-class Token(BaseModel):
+class Token(SQLModel):
     access_token: str
     token_type: str
 
-
-class TokenData(BaseModel):
+class TokenData(SQLModel):
     username: str | None = None
 
+# Users
+class UserBase(SQLModel):
+    username: str = Field(index=True, unique=True)
+    admin_status: bool = Field(default=False)
 
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    password: str
+
+class UserCreate(UserBase):
+    password: str
+
+class UserPublic(UserBase):
+    id: int
+
+# Notes
+class NoteBase(SQLModel):
+    title: str | None = Field(default=None)
+    content: str | None = Field(default=None)
+
+class Note(NoteBase, table=True):
+    id: str | None = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    username: str = Field(index=True)
+
+class NoteCreate(NoteBase):
+    pass
+
+class NoteUpdate(NoteBase):
+    pass
+
+class NotePublic(NoteBase):
+    id: str
+    username: str

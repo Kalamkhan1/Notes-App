@@ -1,8 +1,12 @@
-# main.py
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
 from routers import notes, users, authentication
-from database import startup_db_client, shutdown_db_client
+from database import create_db_and_tables
+from limiter import limiter
 
 # Description for Swagger UI and API documentation
 description = """
@@ -24,24 +28,20 @@ Notes App API lets users securely manage their personal notes. 📝
 # Define lifespan method for managing app startup and shutdown events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Connecting to database...")
-    await startup_db_client(app)
+    print("Creating tables...")
+    create_db_and_tables()
+    print("Tables created.")
     yield
-    print("Closing database connection...")
-    await shutdown_db_client(app)
-
-from fastapi.middleware.cors import CORSMiddleware
 
 origins = [
     "*", 
 ]
 
-
 # FastAPI app instance with metadata
 app = FastAPI(
     title="Notes App API",
     description=description,
-    summary="A secure note-taking backend built with FastAPI and MongoDB.",
+    summary="A secure note-taking backend built with FastAPI and SQLModel.",
     version="1.0.0",
     contact={
         "name": "Notes App Support",
@@ -54,6 +54,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Attach rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -63,12 +67,12 @@ app.add_middleware(
 )
 
 # Routers
-app.include_router(users.router, prefix="/user", tags=["users"])
+app.include_router(users.router, prefix="/user")
 app.include_router(notes.router, prefix="/notes", tags=["notes"])
 app.include_router(authentication.router, tags=["authentication"])
 
 
 # Root endpoint
 @app.get("/")
-async def root():
+def root():
     return {"message": "Notes App API is running."}

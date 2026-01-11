@@ -2,9 +2,13 @@ pwdlib[argon2]
 fastapi
 pyjwt
 pwdlib
-motor
+sqlmodel
 uvicorn
 pydantic
 pydantic[email]
 python-dotenv
 python-multipart
+requests
+slowapi
+pytest
+httpx
